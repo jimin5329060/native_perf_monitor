@@ -35,7 +35,7 @@ class _MyAppState extends State<MyApp> {
     } on PlatformException {
       pingStr = 'Failed to get platform version.';
     }
-    print('pingStr = $pingStr');
+    debugPrint('pingStr = $pingStr');
 
     // If the widget was removed from the tree while the asynchronous platform
     // message was in flight, we want to discard the reply rather than calling
