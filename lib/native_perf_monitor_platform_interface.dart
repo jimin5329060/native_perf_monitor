@@ -26,4 +26,7 @@ abstract class NativePerfMonitorPlatform extends PlatformInterface {
   Future<String?> getPlatformVersion() {
     throw UnimplementedError('platformVersion() has not been implemented.');
   }
+  Future<String?> ping(String input) {
+    throw UnimplementedError('ping() has not been implemented.');
+  }
 }

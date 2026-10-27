@@ -9,6 +9,8 @@ class MockNativePerfMonitorPlatform
     implements NativePerfMonitorPlatform {
   @override
   Future<String?> getPlatformVersion() => Future.value('42');
+  @override
+  Future<String?> ping(String input) async => '$input from mock';
 }
 
 void main() {
@@ -18,11 +20,10 @@ void main() {
     expect(initialPlatform, isInstanceOf<MethodChannelNativePerfMonitor>());
   });
 
-  test('getPlatformVersion', () async {
+  test('ping', () async {
     NativePerfMonitor nativePerfMonitorPlugin = NativePerfMonitor();
     MockNativePerfMonitorPlatform fakePlatform = MockNativePerfMonitorPlatform();
     NativePerfMonitorPlatform.instance = fakePlatform;
-
-    expect(await nativePerfMonitorPlugin.getPlatformVersion(), '42');
+    expect(await nativePerfMonitorPlugin.ping('test'), 'test from mock');
   });
 }

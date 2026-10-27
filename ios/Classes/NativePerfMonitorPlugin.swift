@@ -10,6 +10,9 @@ public class NativePerfMonitorPlugin: NSObject, FlutterPlugin {
 
   public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     switch call.method {
+    case "ping":
+      let input = (call.arguments as? [String: Any])?["input"] as? String ?? ""
+      result("\(input) from ios")
     case "getPlatformVersion":
       result("iOS " + UIDevice.current.systemVersion)
     default:

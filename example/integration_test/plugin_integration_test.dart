@@ -16,7 +16,7 @@ void main() {
 
   testWidgets('getPlatformVersion test', (WidgetTester tester) async {
     final NativePerfMonitor plugin = NativePerfMonitor();
-    final String? version = await plugin.getPlatformVersion();
+    final String? version = await plugin.ping('test');
     // The version string depends on the host platform running the test, so
     // just assert that some non-empty string is returned.
     expect(version?.isNotEmpty, true);

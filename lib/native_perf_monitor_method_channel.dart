@@ -16,4 +16,9 @@ class MethodChannelNativePerfMonitor extends NativePerfMonitorPlatform {
     );
     return version;
   }
+  @override
+  Future<String?> ping(String input) {
+    // TODO: implement ping
+    return methodChannel.invokeMethod<String>('ping', {'input': input});
+  }
 }
