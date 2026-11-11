@@ -2,6 +2,8 @@ package com.jimin.native_perf_monitor
 
 import android.content.Context
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.Choreographer
 import android.view.WindowManager
@@ -27,6 +29,10 @@ class NativePerfMonitorPlugin :
     /** 判定阈值：实际间隔达到帧预算的 2 倍，等价于“至少掉了一帧” */
     private val jankRatio = 2.0
 
+    // 卡顿模拟用：主线程队列，阻塞任务挂在它上面
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var jankTask: Runnable? = null
+
     private companion object {
         /** 拿不到刷新率时的兜底：按 60Hz 算，16.67ms */
         const val FALLBACK_BUDGET_NANOS = 16_666_667L
@@ -40,6 +46,11 @@ class NativePerfMonitorPlugin :
                 val budgetNanos = currentFrameBudgetNanos()
                 // 原生只负责测量，不负责聚合判断
                 if (gapNanos >= budgetNanos * jankRatio) {
+                    // 调试用：adb logcat -s PerfMonitor，能看出卡顿发生的精确时刻
+                    Log.d(
+                        "PerfMonitor",
+                        "jank gap=${gapNanos / 1_000_000}ms budget=${budgetNanos / 1_000_000}ms"
+                    )
                     eventSink?.success(
                         mapOf(
                             "gapMs" to gapNanos / 1_000_000.0,
@@ -95,8 +106,11 @@ class NativePerfMonitorPlugin :
             // 在主线程阻塞，用来制造可观测的卡顿
             "simulateJank" -> {
                 val ms = call.argument<Int>("ms") ?: 80
-                Thread.sleep(ms.toLong())
-                result.success("blocked $ms ms")
+                val times = call.argument<Int>("times") ?: 1
+                val intervalMs = call.argument<Int>("intervalMs") ?: 300
+                startJank(ms, times, intervalMs.toLong())
+                // 立刻回，不阻塞通道；真正的卡顿在下一轮主线程消息里发生
+                result.success("blocked ${ms}ms x $times")
             }
             else -> result.notImplemented()
         }
@@ -115,9 +129,41 @@ class NativePerfMonitorPlugin :
         lastFrameNanos = 0L
     }
 
+    /**
+     * 在主线程制造卡顿：每次阻塞 blockMs 毫秒，重复 times 次，两次之间隔 intervalMs。
+     *
+     * 注意：Thread.sleep 在 Android 主线程上就是真实卡顿，这是刻意的。
+     * 用 postDelayed 而不是在 onMethodCall 里直接 sleep，是为了让方法立刻返回，
+     * 这样 Dart 侧不会挂着一个 Future，而卡顿按自然的节奏发生。
+     */
+    private fun startJank(blockMs: Int, times: Int, intervalMs: Long) {
+        stopJank()
+        val task = object : Runnable {
+            var remaining = times
+            override fun run() {
+                try {
+                    Thread.sleep(blockMs.toLong())
+                } catch (e: InterruptedException) {
+                    Thread.currentThread().interrupt()
+                    return
+                }
+                remaining--
+                if (remaining > 0) mainHandler.postDelayed(this, intervalMs)
+            }
+        }
+        jankTask = task
+        mainHandler.post(task)
+    }
+
+    private fun stopJank() {
+        jankTask?.let { mainHandler.removeCallbacks(it) }
+        jankTask = null
+    }
+
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         stopFrameMonitoring()
+        stopJank()
         eventSink = null
         channel.setMethodCallHandler(null)
         eventChannel.setStreamHandler(null)

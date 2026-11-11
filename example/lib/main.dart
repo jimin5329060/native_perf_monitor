@@ -4,7 +4,7 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:native_perf_monitor/native_perf_monitor.dart';
 
-void main() =>runApp(const MyApp());
+void main() => runApp(const MyApp());
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -13,6 +13,7 @@ class MyApp extends StatelessWidget {
     return const MaterialApp(home: HomePage());
   }
 }
+
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -24,7 +25,7 @@ class _HomePageState extends State<HomePage> {
   String _pingStr = 'Unknown';
   final _nativePerfMonitorPlugin = NativePerfMonitor();
 
-  final List<Map> _rows = [];        // 最近的事件
+  final List<Map> _rows = []; // 最近的事件
   StreamSubscription<dynamic>? _sub; // ← 关键：手动订阅，才能显式取消
 
   @override
@@ -38,18 +39,22 @@ class _HomePageState extends State<HomePage> {
       });
     });
   }
+
   @override
   void dispose() {
-    _sub?.cancel();     // ← 这一句会触发原生 onCancel
+    _sub?.cancel(); // ← 这一句会触发原生 onCancel
     super.dispose();
   }
+
   // Platform messages are asynchronous, so we initialize in an async method.
   Future<void> initPlatformState() async {
     String pingStr;
     // Platform messages may fail, so we use a try/catch PlatformException.
     // We also handle the message potentially returning null.
     try {
-      pingStr = await _nativePerfMonitorPlugin.ping('hello') ?? 'Unknown platform version';
+      pingStr =
+          await _nativePerfMonitorPlugin.ping('hello') ??
+          'Unknown platform version';
     } on PlatformException {
       pingStr = 'Failed to get platform version.';
     }
@@ -64,6 +69,17 @@ class _HomePageState extends State<HomePage> {
       _pingStr = pingStr;
     });
   }
+
+  /// 制造卡顿：阻塞 ms 毫秒，重复 times 次，间隔 intervalMs
+  Future<void> _jank(int ms, int times, int intervalMs) async {
+    final r = await _nativePerfMonitorPlugin.simulateJank(
+      ms: ms,
+      times: times,
+      intervalMs: intervalMs,
+    );
+    debugPrint('simulateJank -> $r');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -88,12 +104,33 @@ class _HomePageState extends State<HomePage> {
                       onPressed: () => Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => const Scaffold(
-                            body: Center(child: Text('第二页')),
-                          ),
+                          builder: (_) =>
+                              const Scaffold(body: Center(child: Text('第二页'))),
                         ),
                       ),
                       child: const Text('push 新页面'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+
+                  children: [
+                    ElevatedButton(
+                      onPressed: () => _jank(80, 1, 300),
+                      child: const Text('卡 80ms'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () => _jank(80, 5, 300),
+                      child: const Text('连续 5 次'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () => _jank(200, 1, 300),
+                      child: const Text('卡 200ms'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () => setState(_rows.clear),
+                      child: const Text('清空'),
                     ),
                   ],
                 ),
@@ -110,6 +147,9 @@ class _HomePageState extends State<HomePage> {
               itemCount: _rows.length,
               itemBuilder: (context, index) {
                 final row = _rows[index];
+                final gap = (row['gapMs'] as num?)?.toDouble() ?? 0;
+                final ratio = (row['ratio'] as num?)?.toDouble() ?? 0;
+                final hot = ratio >= 5;
                 return ListTile(
                   dense: true,
                   leading: Text(
@@ -117,8 +157,11 @@ class _HomePageState extends State<HomePage> {
                     style: const TextStyle(fontFamily: 'monospace'),
                   ),
                   title: Text(
-                    'gapMs: ${row['gapMs']}',
-                    style: const TextStyle(fontFamily: 'monospace'),
+                    '${gap.toStringAsFixed(1)}ms  ·  ${ratio.toStringAsFixed(1)}x',
+                    style: TextStyle(
+                      fontFamily: 'monospace',
+                      color: hot ? Colors.red : Colors.orange.shade800,
+                    ),
                   ),
                   subtitle: Text(_formatTs(row['ts'])),
                 );
@@ -132,14 +175,9 @@ class _HomePageState extends State<HomePage> {
 
   /// 毫秒时间戳 → HH:mm:ss
   String _formatTs(dynamic ts) {
-    debugPrint('ts = $ts\n');
     if (ts is! int) return '--';
     final t = DateTime.fromMillisecondsSinceEpoch(ts);
     String two(int v) => v.toString().padLeft(2, '0');
     return '${two(t.hour)}:${two(t.minute)}:${two(t.second)}';
   }
-
 }
-
-
-

@@ -14,10 +14,18 @@ class MockNativePerfMonitorPlatform
 
   @override
   Stream<dynamic> events() => const Stream.empty();
+
+  @override
+  Future<String?> simulateJank({
+    int ms = 80,
+    int times = 1,
+    int intervalMs = 300,
+  }) async => 'blocked ${ms}ms x $times';
 }
 
 void main() {
-  final NativePerfMonitorPlatform initialPlatform = NativePerfMonitorPlatform.instance;
+  final NativePerfMonitorPlatform initialPlatform =
+      NativePerfMonitorPlatform.instance;
 
   test('$MethodChannelNativePerfMonitor is the default instance', () {
     expect(initialPlatform, isInstanceOf<MethodChannelNativePerfMonitor>());
@@ -25,10 +33,9 @@ void main() {
 
   test('ping', () async {
     NativePerfMonitor nativePerfMonitorPlugin = NativePerfMonitor();
-    MockNativePerfMonitorPlatform fakePlatform = MockNativePerfMonitorPlatform();
+    MockNativePerfMonitorPlatform fakePlatform =
+        MockNativePerfMonitorPlatform();
     NativePerfMonitorPlatform.instance = fakePlatform;
     expect(await nativePerfMonitorPlugin.ping('test'), 'test from mock');
   });
-
-
 }

@@ -26,12 +26,22 @@ abstract class NativePerfMonitorPlatform extends PlatformInterface {
   Future<String?> getPlatformVersion() {
     throw UnimplementedError('platformVersion() has not been implemented.');
   }
+
   Future<String?> ping(String input) {
     throw UnimplementedError('ping() has not been implemented.');
   }
 
-  Stream<dynamic> events(){
+  Stream<dynamic> events() {
     throw UnimplementedError('events() has not been implemented.');
   }
 
+  /// 在主线程制造卡顿：阻塞 [ms] 毫秒，重复 [times] 次，间隔 [intervalMs]。
+  /// 仅用于测试和演示，不要在业务代码里调用。
+  Future<String?> simulateJank({
+    int ms = 80,
+    int times = 1,
+    int intervalMs = 300,
+  }) {
+    throw UnimplementedError('simulateJank() has not been implemented.');
+  }
 }
