@@ -11,6 +11,9 @@ class MockNativePerfMonitorPlatform
   Future<String?> getPlatformVersion() => Future.value('42');
   @override
   Future<String?> ping(String input) async => '$input from mock';
+
+  @override
+  Stream<dynamic> events() => const Stream.empty();
 }
 
 void main() {
@@ -26,4 +29,6 @@ void main() {
     NativePerfMonitorPlatform.instance = fakePlatform;
     expect(await nativePerfMonitorPlugin.ping('test'), 'test from mock');
   });
+
+
 }

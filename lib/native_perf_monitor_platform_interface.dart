@@ -29,4 +29,9 @@ abstract class NativePerfMonitorPlatform extends PlatformInterface {
   Future<String?> ping(String input) {
     throw UnimplementedError('ping() has not been implemented.');
   }
+
+  Stream<dynamic> events(){
+    throw UnimplementedError('events() has not been implemented.');
+  }
+
 }

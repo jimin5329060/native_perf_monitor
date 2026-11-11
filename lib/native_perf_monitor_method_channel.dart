@@ -8,7 +8,7 @@ class MethodChannelNativePerfMonitor extends NativePerfMonitorPlatform {
   /// The method channel used to interact with the native platform.
   @visibleForTesting
   final methodChannel = const MethodChannel('native_perf_monitor');
-
+  late final Stream<dynamic> _events = const EventChannel('native_perf_monitor/events').receiveBroadcastStream();
   @override
   Future<String?> getPlatformVersion() async {
     final version = await methodChannel.invokeMethod<String>(
@@ -21,4 +21,7 @@ class MethodChannelNativePerfMonitor extends NativePerfMonitorPlatform {
     // TODO: implement ping
     return methodChannel.invokeMethod<String>('ping', {'input': input});
   }
+
+  @override
+  Stream<dynamic> events() => _events;
 }
