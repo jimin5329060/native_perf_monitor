@@ -43,22 +43,24 @@ class NativePerfMonitorPlugin :
 //            Log.d("PerfMonitor", "frame $frameTimeNanos")
             if (lastFrameNanos != 0L) {
                 val gapNanos = frameTimeNanos - lastFrameNanos
-                val budgetNanos = currentFrameBudgetNanos()
-                // 原生只负责测量，不负责聚合判断
-                if (gapNanos >= budgetNanos * jankRatio) {
-                    // 调试用：adb logcat -s PerfMonitor，能看出卡顿发生的精确时刻
-                    Log.d(
-                        "PerfMonitor",
-                        "jank gap=${gapNanos / 1_000_000}ms budget=${budgetNanos / 1_000_000}ms"
-                    )
-                    eventSink?.success(
-                        mapOf(
-                            "gapMs" to gapNanos / 1_000_000.0,
-                            "budgetMs" to budgetNanos / 1_000_000.0,
-                            "ratio" to gapNanos.toDouble() / budgetNanos,
-                            "ts" to System.currentTimeMillis(),
+                if(gapNanos <= 500_000_000L){ // 连续帧才判定
+                    val budgetNanos = currentFrameBudgetNanos()
+                    // 原生只负责测量，不负责聚合判断
+                    if (gapNanos >= budgetNanos * jankRatio) {
+                        // 调试用：adb logcat -s PerfMonitor，能看出卡顿发生的精确时刻
+                        Log.d(
+                            "PerfMonitor",
+                            "jank gap=${gapNanos / 1_000_000}ms budget=${budgetNanos / 1_000_000}ms"
                         )
-                    )
+                        eventSink?.success(
+                            mapOf(
+                                "gapMs" to gapNanos / 1_000_000.0,
+                                "budgetMs" to budgetNanos / 1_000_000.0,
+                                "ratio" to gapNanos.toDouble() / budgetNanos,
+                                "ts" to System.currentTimeMillis(),
+                            )
+                        )
+                    }
                 }
             }
             lastFrameNanos = frameTimeNanos
